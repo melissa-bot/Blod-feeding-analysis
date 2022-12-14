@@ -1,0 +1,65 @@
+#importar paquetes que se usarán en el analisis
+import numpy as np
+from numpy import diff
+import matplotlib.pyplot as plt
+import pandas as pd
+
+data=np.loadtxt("RAW data FA.txt") #load data
+
+sp = pd.read_csv('lista_especies_mediciones_ab.txt', header=None)#listado de especies en 
+#el mismo orden de las mediciones
+
+x=(len(data))//4 #Determinar el número de medidas
+
+data_1=data.reshape((x, 4))# organizar cada variable en una columna, y las medidas de 
+#cada especimen en cada fila
+
+mt=data_1[:,0]#ancho lateral torax
+lt=data_1[:,1]#largo lateral torax
+la=data_1[:,2]#ancho lateral abdomen
+ma=data_1[:,3]#largo lateral abdomen
+pat=(ma*la)/(mt*lt)#proporciones morfometricas
+
+Tdata=pd.DataFrame(pat)#convertir el arreglo de numpy a dataframe
+Tdata.columns =['Proporcion']#titulo de la columna
+
+Tdata["Especie"]=sp#agregar la columna de especies 
+
+def categorise(row):  #definición de función para clasificación An. albimanus
+    if row['Proporcion'] >= 3.11:
+        return 'Lleno'
+    elif row['Proporcion'] >= 2.7 and row['Proporcion'] < 3.11:
+        return 'Medio'
+    elif row['Proporcion'] >= 2.13  and row['Proporcion'] < 2.7:
+        return 'Bajo'
+    return 'No visible'
+
+#aplicar la definición anterior a la lista completa de datos:
+Tdata['clasificacion A albimanus'] = Tdata.apply(lambda row: categorise(row), axis=1)
+
+def categorise(row2):  #definición de función para clasificación An. neivai
+    if row2['Proporcion'] >= 3.13:
+        return 'Lleno'
+    elif row2['Proporcion'] >= 2.7 and row2['Proporcion'] < 3.13:
+        return 'Medio'
+    elif row2['Proporcion'] >= 2.0  and row2['Proporcion'] < 2.7:
+        return 'Bajo'
+    return 'No visible'
+
+#aplicar la definición anterior a la lista completa de datos:
+Tdata['clasificacion A neivai'] = Tdata.apply(lambda row2: categorise(row2), axis=1)
+
+def categorise(row3):  
+    if row3['Especie'] == "An. albimanus":
+        return 'clasificacion A albimanus'
+    return 'clasificacion A neivai'
+
+Tdata['clasificacion final'] = Tdata.apply(lambda row3: categorise(row3), axis=1)
+
+Tdata['clasificacion final'] = np.where(Tdata['Especie']== 'An. neivai', Tdata['clasificacion A neivai'], Tdata['clasificacion A albimanus'])
+Tdata.head()
+
+data_final=Tdata['clasificacion final']
+#numpy_array = data_final.to_numpy()
+
+data_final.to_csv('clasificacion_final_2.txt', header=None, index=None, sep=' ', mode='a')
